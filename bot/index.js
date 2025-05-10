@@ -34,11 +34,11 @@ app.post("/send-message", upload.single("file"), async (req, res) => {
     const channel = await client.channels.fetch(channelId);
     if (!channel) return res.status(404).json({ error: "Canal no encontrado" });
 
-    // Enviar mensaje con o sin archivo
+    // Si hay un archivo, lo enviamos junto al mensaje
     if (file) {
       await channel.send({
-        content: message,
-        files: [{ attachment: file.buffer, name: file.originalname }],
+        content: message, // El mensaje como texto
+        files: [{ attachment: file.buffer, name: file.originalname }] // El archivo adjunto
       });
     } else {
       await channel.send({ content: message });
@@ -59,11 +59,11 @@ app.post("/send-dm", upload.single("file"), async (req, res) => {
     const user = await client.users.fetch(userId);
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
 
-    // Enviar DM con o sin archivo adjunto
+    // Si hay un archivo, lo enviamos junto al mensaje
     if (file) {
       await user.send({
-        content: message,
-        files: [{ attachment: file.buffer, name: file.originalname }],
+        content: message, // El mensaje como texto
+        files: [{ attachment: file.buffer, name: file.originalname }] // El archivo adjunto
       });
     } else {
       await user.send({ content: message });
