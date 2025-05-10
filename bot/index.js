@@ -1,10 +1,10 @@
-// 📁 Archivo: bot/index.js
 require("dotenv").config();
 const { Client, GatewayIntentBits, Partials } = require("discord.js");
 const express = require("express");
-const app = express();
 const cors = require("cors");
+const multer = require("multer");  // Requerir multer para manejar archivos
 
+const app = express();
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -16,17 +16,31 @@ const client = new Client({
   partials: [Partials.Channel],
 });
 
+// Configurar multer para almacenar archivos
+const storage = multer.memoryStorage(); // Usamos memoria para manejar el archivo
+const upload = multer({ storage: storage }); // Configuramos multer
+
 app.use(cors());
 app.use(express.json());
 
 // 🌐 Web API para recibir mensajes desde el frontend
-app.post("/send-message", async (req, res) => {
+app.post("/send-message", upload.single("file"), async (req, res) => {
   const { channelId, message } = req.body;
+  const file = req.file;  // Recibimos el archivo de la petición
+
   try {
     const channel = await client.channels.fetch(channelId);
     if (!channel) return res.status(404).json({ error: "Canal no encontrado" });
 
-    await channel.send({ content: message });
+    // Si hay un archivo, lo enviamos junto al mensaje
+    if (file) {
+      await channel.send({
+        content: message,
+        files: [{ attachment: file.buffer, name: file.originalname }],
+      });
+    } else {
+      await channel.send({ content: message });
+    }
     res.json({ status: "Mensaje enviado" });
   } catch (err) {
     console.error(err);
@@ -35,13 +49,23 @@ app.post("/send-message", async (req, res) => {
 });
 
 // ✉️ Enviar mensaje privado a un usuario
-app.post("/send-dm", async (req, res) => {
+app.post("/send-dm", upload.single("file"), async (req, res) => {
   const { userId, message } = req.body;
+  const file = req.file;
+
   try {
     const user = await client.users.fetch(userId);
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
 
-    await user.send({ content: message });
+    // Si hay un archivo, lo enviamos junto al mensaje
+    if (file) {
+      await user.send({
+        content: message,
+        files: [{ attachment: file.buffer, name: file.originalname }],
+      });
+    } else {
+      await user.send({ content: message });
+    }
     res.json({ status: "DM enviado" });
   } catch (err) {
     console.error(err);
@@ -52,7 +76,7 @@ app.post("/send-dm", async (req, res) => {
 // 👋 Bienvenida y despedida
 client.on("guildMemberAdd", async (member) => {
   const mensaje = `👋 ¡Bienvenido a **World Time**, ${member.user.username}!
-  
+
 Estamos felices de tenerte aquí. Usa los comandos y explora el contenido disponible.`;
   try {
     await member.send(mensaje);
